@@ -1,8 +1,9 @@
-class DevBotsChat {
-  constructor(apiKey) {
+class DevBot {
+  constructor(apiKey, title) {
     this.apiKey = apiKey;
+    this.title = title;
     this.isOpen = false;
-    this.messages = [{ role: 'assistant', content: '👋🏻 Greetings! DevBot at your Service.' }];
+    this.messages = [];
     this.isLoading = false;
     this.showScrollButton = false;
 
@@ -15,37 +16,49 @@ class DevBotsChat {
     const style = document.createElement('style');
     style.textContent = `
       .devbots-chat-widget {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1000;
-        font-family: Arial, sans-serif;
-      }
+  display: flex;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  font-family: Arial, sans-serif;
+}
       .devbots-chat-button {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background-color: #27272a;
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: background-color 0.3s;
-      }
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #27272a;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.3s;
+}
       .devbots-chat-button:hover {
         background-color: #3f3f46;
+        transform: scale(1.1);
       }
       .devbots-chat-window {
         width: 320px;
         height: 500px;
         background-color: white;
+        border: 1px solid #e5e7eb;
         border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        transform: translateY(100%);
+        opacity: 0;
         transition: all 0.3s;
+      }
+      .devbots-chat-window.open {
+        transform: translateY(0);
+        opacity: 1;
       }
       .devbots-chat-header {
         background-color: #f3f4f6;
@@ -71,6 +84,7 @@ class DevBotsChat {
       }
       .devbots-message {
         max-width: 80%;
+        width: fit-content;
         margin-bottom: 10px;
         padding: 8px 12px;
         border-radius: 18px;
@@ -129,7 +143,7 @@ class DevBotsChat {
       .devbots-powered-by {
         text-align: center;
         font-size: 10px;
-        margin-top: -16px;
+        margin-top: -6px;
         margin-bottom: 8px;
       }
       .devbots-powered-by a {
@@ -148,18 +162,20 @@ class DevBotsChat {
     this.widget.className = 'devbots-chat-widget';
     this.widget.innerHTML = `
       <div class="devbots-chat-button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M21 12H3M12 3v18"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </div>
-      <div class="devbots-chat-window" style="display: none;">
+      <div class="devbots-chat-window">
         <div class="devbots-chat-header">
-          <div class="devbots-chat-title">DevBots Support</div>
+          <div class="devbots-chat-title">${this.title}</div>
           <button class="devbots-chat-close">&times;</button>
         </div>
         <div class="devbots-chat-messages"></div>
-        <div class="devbots-chat-input">
-          <input type="text" placeholder="Ask something...">
-          <button type="submit">Send</button>
-        </div>
+         <div class="devbots-chat-input">
+    <input type="text" placeholder="Ask something...">
+    <button type="submit">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-forward"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg>
+    </button>
+  </div>
         <div class="devbots-powered-by">
           Powered by <a href="https://devbots.vercel.app" target="_blank">DevBots</a>
         </div>
@@ -192,7 +208,7 @@ class DevBotsChat {
 
   toggleChat() {
     this.isOpen = !this.isOpen;
-    this.chatWindow.style.display = this.isOpen ? 'flex' : 'none';
+    this.chatWindow.classList.toggle('open', this.isOpen);
     this.chatButton.style.display = this.isOpen ? 'none' : 'flex';
     if (this.isOpen) this.scrollToBottom();
   }
@@ -254,9 +270,22 @@ class DevBotsChat {
 
   updateSendButtonState() {
     this.sendButton.disabled = this.isLoading;
-    this.sendButton.textContent = this.isLoading ? 'Sending...' : 'Send';
+    this.sendButton.innerHTML = this.isLoading
+      ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-loader spin"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>`
+      : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-forward"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg>`;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+      }
+      .spin {
+      animation: spin 1s linear infinite;
+      }
+    `;
+    document.head.appendChild(style);
   }
 }
 
-// Make the class available globally
-window.DevBotsChat = DevBotsChat;
+window.DevBot = DevBot;
