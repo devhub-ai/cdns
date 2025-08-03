@@ -113,7 +113,7 @@ class DevBot {
         margin-right: 8px;
       }
       .devbots-chat-input button {
-        background-color: #2563eb;
+        background-color:rgb(8, 12, 20);
         color: white;
         border: none;
         padding: 8px 12px;
@@ -230,11 +230,39 @@ class DevBot {
       const response = await fetch('https://devbots-server.vercel.app/api/chatbots/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: this.apiKey, query: message }),
+        body: JSON.stringify({
+          apiKey: this.apiKey,
+          query: message,
+          history: this.messages.map(msg => ({
+            role: msg.role === 'assistant' ? 'model' : msg.role,
+            content: msg.content
+          }))
+        }),
       });
 
-      const data = await response.json();
-      this.addMessage('assistant', data.response || 'Sorry, something went wrong.');
+      if (!response.body) throw new Error('No response body');
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      // Add assistant message placeholder
+      const assistantMsg = { role: 'assistant', content: '' };
+      this.messages.push(assistantMsg);
+      this.renderMessages();
+      this.scrollToBottom();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+
+        assistantMsg.content = fullText;
+        this.renderMessages();
+        this.scrollToBottom();
+      }
     } catch (error) {
       console.error('Error fetching response:', error);
       this.addMessage('assistant', 'Sorry, something went wrong. Please try again later.');
@@ -243,6 +271,7 @@ class DevBot {
       this.updateSendButtonState();
     }
   }
+
 
   addMessage(role, content) {
     this.messages.push({ role, content });
